@@ -77,7 +77,12 @@ class YoutubeDownloaderController extends Controller {
 
         \Yii::$app->response->on(Response::EVENT_AFTER_SEND, 
         
-        function($event) {if(unlink($event->data[0] ."/". $event->data[1])) { rmdir($event->data[0]); } }, ["$tmpStorage/$ytVideoId","$fileName"]);
+            function($event) { 
+                if(unlink($event->data[0] ."/". $event->data[1])) { 
+                    rmdir($event->data[0]); 
+                } 
+            }, ["$tmpStorage/$ytVideoId","$fileName"]
+        );
 
 
         return \Yii::$app->response->sendFile("$tmpStorage/$ytVideoId/$fileName", $fileName);
