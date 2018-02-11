@@ -5,6 +5,7 @@ use yii\web\Controller;
 use yii\web\Response;
 use yii\helpers\Url;
 
+use app\models\Records;
 use app\models\InputField;
 use app\models\YoutubeDownloader;
 use yii\base\UserException;
@@ -12,8 +13,18 @@ use yii\helpers\FileHelper;
 
 class YoutubeDownloaderController extends Controller {
 
-    public $currFileName;
-    public $currVidId;
+    protected function makeRecord($ytVideoId, $fileName) {
+        $records = new Records();
+
+        $records->yt_video_id = $ytVideoId;
+        $records->file_name = $fileName;
+
+       if($records->save()) {
+            return 1;
+       }
+
+       return 0;    
+    }
 
     public function actionDownload() {
 
@@ -38,13 +49,10 @@ class YoutubeDownloaderController extends Controller {
 
             }
 
-            $downloadedFPath = FileHelper::findFiles($tmpPath);
+            $downloadedFPath = FileHelper::findFiles($tmpPath,['only'=>['*.mp3']]);
             $explodedDownloadedFPath = explode('/', $downloadedFPath[0]);
 
             $fileName = $explodedDownloadedFPath[count($explodedDownloadedFPath)-1];
-
-            $this->currFileName = $fileName;
-            $this->currVidId = $m[1];
 
             return $this->render('success', [
                 'fileName' => $fileName,
@@ -64,6 +72,12 @@ class YoutubeDownloaderController extends Controller {
         if(!isset($fileName) || !isset($ytVideoId)) {
             throw new UserException(var_dump($fileName));
         }
+
+        $this->makeRecord($ytVideoId, $fileName);
+
+        \Yii::$app->response->on(Response::EVENT_AFTER_SEND, 
+        
+        function($event) {if(unlink($event->data[0] ."/". $event->data[1])) { rmdir($event->data[0]); } }, ["$tmpStorage/$ytVideoId","$fileName"]);
 
 
         return \Yii::$app->response->sendFile("$tmpStorage/$ytVideoId/$fileName", $fileName);
