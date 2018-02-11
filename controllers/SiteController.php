@@ -3,12 +3,16 @@
 namespace app\controllers;
 
 use Yii;
+use yii\data\ActiveDataProvider;
 use yii\filters\AccessControl;
 use yii\web\Controller;
 use yii\web\Response;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
+
+use app\models\Records;
+
 
 class SiteController extends Controller
 {
@@ -124,5 +128,20 @@ class SiteController extends Controller
     public function actionAbout()
     {
         return $this->render('about');
+    }
+
+    public function actionRecords() {
+        $records = Records::find()->indexBy('timestamp')->all();
+
+        $records = new ActiveDataProvider([
+            'query' => Records::find(),
+            'pagination' => [
+                'pageSize' => 20
+            ]
+        ]);
+
+        return $this->render('records', [
+            'records' => $records
+        ]);
     }
 }
