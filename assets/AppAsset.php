@@ -23,7 +23,9 @@ class AppAsset extends AssetBundle
         'css/site.css',
     ];
     public $js = [
+        'scripts/ajaxSend.js'
     ];
+
     public $depends = [
         'yii\web\YiiAsset',
         'yii\bootstrap\BootstrapAsset',

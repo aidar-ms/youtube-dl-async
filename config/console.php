@@ -16,6 +16,22 @@ $config = [
         'cache' => [
             'class' => 'yii\caching\FileCache',
         ],
+        'mailer' => [
+            'class' => 'yii\swiftmailer\Mailer',
+            'htmlLayout' => false,
+            // send all mails to a file by default. You have to set
+            // 'useFileTransport' to false and configure a transport
+            // for the mailer to send real emails.
+            'useFileTransport' => false,
+            'transport' => [
+                'class' => 'Swift_SmtpTransport',
+                'host' => 'smtp.gmail.com',
+                'username' => 'mamytovaydar@gmail.com',
+                'password' => 'cfcbornplusneunzig',
+                'port' => '587',
+                'encryption' => 'tls',
+            ]
+        ],
         'log' => [
             'targets' => [
                 [
@@ -25,6 +41,13 @@ $config = [
             ],
         ],
         'db' => $db,
+        'urlManager' => [
+            'class' => 'yii\web\UrlManager',
+            'scriptUrl' => 'http://localhost:8888/index.php',
+            'baseUrl' => 'http://localhost:8888/index.php',
+            'enablePrettyUrl' => true,
+            'showScriptName' => false
+        ]
     ],
     'params' => $params,
     /*

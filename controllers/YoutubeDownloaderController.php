@@ -11,8 +11,11 @@ use app\models\YoutubeDownloader;
 use yii\base\UserException;
 use yii\helpers\FileHelper;
 
+use toriphes\console\Runner;
+
 class YoutubeDownloaderController extends Controller {
 
+    /* ----------- UTILITIES ------------*/
     protected function makeRecord($ytVideoId, $fileName) {
         $records = new Records();
 
@@ -26,64 +29,79 @@ class YoutubeDownloaderController extends Controller {
        return 0;    
     }
 
-    public function actionDownload() {
+    protected function sendEmail($addressee, $downloadLink) {
 
-        $input = new InputField;
-        $model = new YoutubeDownloader;
+        \Yii::$app->mailer->compose('download',['link' => $downloadLink])
+                            ->setFrom('')
+                            ->setTo($addressee)
+                            ->setSubject('Ваш mp3 файл готов')
+                            ->send();
 
-        if($input->load(\Yii::$app->request->post()) && $input->validate()) {
+    }
 
-            $url = $input->url;
+    protected function makeTmpDir($url) {
 
-            preg_match('%(?:youtube(?:-nocookie)?\.com/(?:(?:v|e(?:mbed)?)/|.*[?&]v=|[^/]+/.+/)|youtu\.be/)([^"&?/ ]{11})%i', $url, $m);
-            $tmpPath = \Yii::getAlias('@app/tmp/dl-folder/') . $m[1] ;
+        preg_match('%(?:youtube(?:-nocookie)?\.com/(?:(?:v|e(?:mbed)?)/|.*[?&]v=|[^/]+/.+/)|youtu\.be/)([^"&?/ ]{11})%i', $url, $m);
 
-            
+        return \Yii::getAlias('@app/tmp/dl-folder/') . $m[1];
+    }
 
-            if (FileHelper::createDirectory($tmpPath)) {
-                $model->init();
-                $model->setDestination($tmpPath);
-                $model->download($url);
-            } else {
-                throw new UserException('oops');
+    /*------------ ACTIONS ----------*/
 
+    public function actionValidate() {
+
+        
+
+        if(\Yii::$app->request->isAjax) {
+
+            $input = new InputField;
+
+            // Request is Ajax
+
+            if($input->load(\Yii::$app->request->post()) && $input->validate()) {
+
+                $email = $input->email;
+                $url = $input->url;
+
+                $command = sprintf('youtube-downloader/launch %s %s', $email, $url);
+                $output = '';
+                $runner = new Runner();
+                
+                if($runner->run($command,$output)) {
+                    return $this->asJson(['success' => true, 'output' => $output]);
+                    
+                } else {
+                    throw new UserException(var_dump($runner));
+                }
+
+                /* DATA WAS NOT SAVED */
+
+                $validationResults = [];
+                foreach($input->getErrors() as $attribute => $errors) {
+                    $validationResults[yii\helpers\Html::getInputId($model, $attribute)] = $errors;
+                }
+
+                return $this->asJson(['validation' => $validationResults]);
             }
 
-            $downloadedFPath = FileHelper::findFiles($tmpPath,['only'=>['*.mp3']]);
-            $explodedDownloadedFPath = explode('/', $downloadedFPath[0]);
-
-            $fileName = $explodedDownloadedFPath[count($explodedDownloadedFPath)-1];
-
-            return $this->render('success', [
-                'fileName' => $fileName,
-                'ytVideoId' => $m[1]
-            ]);
+            /* DATA IS NOT JSON */
+            return $this->render('error');
         }
 
     }
 
-    public function actionSend() {
+    public function actionDownload() {
 
         $tmpStorage = \Yii::getAlias('@app/tmp/dl-folder');
 
         $fileName = \Yii::$app->request->get('fileName');
         $ytVideoId = \Yii::$app->request->get('ytVideoId');
+        //$fileName = 'Ha GAY!!!.mp3';
+        //$ytVideoId = 'YaG5SAw1n0c';
 
         if(!isset($fileName) || !isset($ytVideoId)) {
             throw new UserException(var_dump($fileName));
         }
-
-        $this->makeRecord($ytVideoId, $fileName);
-
-        \Yii::$app->response->on(Response::EVENT_AFTER_SEND, 
-        
-            function($event) { 
-                if(unlink($event->data[0] ."/". $event->data[1])) { 
-                    rmdir($event->data[0]); 
-                } 
-            }, ["$tmpStorage/$ytVideoId","$fileName"]
-        );
-
 
         return \Yii::$app->response->sendFile("$tmpStorage/$ytVideoId/$fileName", $fileName);
     }

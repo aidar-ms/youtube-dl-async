@@ -17,6 +17,7 @@ class YoutubeDownloader extends Model {
 
         $this->dl = new YoutubeDl([
             'extract-audio' => true,
+            'encoding' => 'utf-8',
             'audio-format' => 'mp3',
             'audio-quality' => 0, // best
             'output' => '%(title)s.%(ext)s',

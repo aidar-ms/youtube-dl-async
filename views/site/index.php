@@ -14,7 +14,7 @@ use app\models\InputField;
     <?php
         $formModel = new InputField;
         $form = ActiveForm::begin([
-                'action' => ['youtube-downloader/download'],
+                'action' => ['youtube-downloader/validate'],
                 'id' => 'input-field',
                 'method' => 'post',
                 //'enableAjaxValidation' => true,
@@ -22,6 +22,7 @@ use app\models\InputField;
                 ]);
     ?>
 
+    <?= $form->field($formModel, 'email')->textInput() ?>
     <?= $form->field($formModel, 'url')->textInput() ?>
 
     <?= Html::submitButton('Download', ['class'=> 'btn btn-primary']); ?>
