@@ -19,7 +19,9 @@
         "yiisoft/yii2-bootstrap": "~2.0.0",
         "yiisoft/yii2-swiftmailer": "~2.0.0",
         "norkunas/youtube-dl-php": "^1.0@dev",
-        "toriphes/yii2-console-runner": "*"
+        "toriphes/yii2-console-runner": "*",
+        "cboden/ratchet": "dev-master",
+        "ratchet/pawl": "dev-master"
     },
     "require-dev": {
         "yiisoft/yii2-debug": "~2.0.0",

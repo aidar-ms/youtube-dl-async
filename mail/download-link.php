@@ -7,4 +7,4 @@ use yii\helpers\Url;
 
 ?>
 <h2>Ваш mp3 готов. Перейдите по ссылке для скачивания</h2>
-<?= Html::a('Скачать', [$downloadLink, 'fileName' => $fileName, 'ytVideoId' => $ytVideoId]) ?>
+<?= Html::a('Скачать', $downloadLink) // 'fileName' => $fileName, 'ytVideoId' => $ytVideoId]) ?>

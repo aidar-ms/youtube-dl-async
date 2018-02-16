@@ -5,29 +5,22 @@ use yii\web\Controller;
 use yii\web\Response;
 use yii\helpers\Url;
 
+
 use app\models\Records;
 use app\models\InputField;
 use app\models\YoutubeDownloader;
+use app\models\YtdlGearmanWorker;
+use app\models\YtdlGearmanClient;
 use yii\base\UserException;
 use yii\helpers\FileHelper;
 
 use toriphes\console\Runner;
 
+
 class YoutubeDownloaderController extends Controller {
 
     /* ----------- UTILITIES ------------*/
-    protected function makeRecord($ytVideoId, $fileName) {
-        $records = new Records();
-
-        $records->yt_video_id = $ytVideoId;
-        $records->file_name = $fileName;
-
-       if($records->save()) {
-            return 1;
-       }
-
-       return 0;    
-    }
+    
 
     protected function sendEmail($addressee, $downloadLink) {
 
@@ -39,13 +32,6 @@ class YoutubeDownloaderController extends Controller {
 
     }
 
-    protected function makeTmpDir($url) {
-
-        preg_match('%(?:youtube(?:-nocookie)?\.com/(?:(?:v|e(?:mbed)?)/|.*[?&]v=|[^/]+/.+/)|youtu\.be/)([^"&?/ ]{11})%i', $url, $m);
-
-        return \Yii::getAlias('@app/tmp/dl-folder/') . $m[1];
-    }
-
     /*------------ ACTIONS ----------*/
 
     public function actionValidate() {
@@ -54,27 +40,25 @@ class YoutubeDownloaderController extends Controller {
 
         if(\Yii::$app->request->isAjax) {
 
-            $input = new InputField;
-
             // Request is Ajax
+
+
+            $records = new Records;
+            $input = new InputField;
 
             if($input->load(\Yii::$app->request->post()) && $input->validate()) {
 
-                $email = $input->email;
                 $url = $input->url;
-
-                $command = sprintf('youtube-downloader/launch %s %s', $email, $url);
-                $output = '';
-                $runner = new Runner();
+                $email = $input->email;
                 
-                if($runner->run($command,$output)) {
-                    return $this->asJson(['success' => true, 'output' => $output]);
-                    
-                } else {
-                    throw new UserException(var_dump($runner));
-                }
+                $runner = new Runner();
+                $runner->run('youtube-downloader/launch-gearman-worker');
+                $grmnClient = new YtdlGearmanClient($url, $email);
+                
 
-                /* DATA WAS NOT SAVED */
+                return $this->asJson(['success' => true]);
+                    
+            } else {
 
                 $validationResults = [];
                 foreach($input->getErrors() as $attribute => $errors) {
@@ -84,27 +68,33 @@ class YoutubeDownloaderController extends Controller {
                 return $this->asJson(['validation' => $validationResults]);
             }
 
-            /* DATA IS NOT JSON */
-            return $this->render('error');
+            /* REQUEST IS NOT AJAX */
+            throw new UserException('Произошла ошибка при обработке запроса');
         }
 
     }
 
     public function actionDownload() {
+        
+        $records = new Records;
 
         $tmpStorage = \Yii::getAlias('@app/tmp/dl-folder');
 
+        $email = \Yii::$app->request->get('email');
         $fileName = \Yii::$app->request->get('fileName');
         $ytVideoId = \Yii::$app->request->get('ytVideoId');
-        //$fileName = 'Ha GAY!!!.mp3';
-        //$ytVideoId = 'YaG5SAw1n0c';
+
 
         if(!isset($fileName) || !isset($ytVideoId)) {
             throw new UserException(var_dump($fileName));
         }
 
+        $records->makeRecord($email, $fileName, $ytVideoId);
+
         return \Yii::$app->response->sendFile("$tmpStorage/$ytVideoId/$fileName", $fileName);
     }
+
+
 
 }
 

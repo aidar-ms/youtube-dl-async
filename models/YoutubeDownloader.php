@@ -13,6 +13,8 @@ class YoutubeDownloader extends Model {
 
     public $dl;
 
+    /*------------------- Youtube-dl wrapper --------------------*/
+
     public function init() {
 
         $this->dl = new YoutubeDl([
@@ -31,13 +33,41 @@ class YoutubeDownloader extends Model {
         $this->dl->setDownloadPath($destination);
     }
 
-    public function download($ytLink) {
+    public function extractMp3($ytLink) {
+
         $this->dl->download($ytLink);
+        
+    }
+    
+    /* --------------------------------------------------------- */
+
+
+    /*------------------- Utilities --------------------*/
+
+    public function makeTmpDirRoute($url) {
+        
+        preg_match('%(?:youtube(?:-nocookie)?\.com/(?:(?:v|e(?:mbed)?)/|.*[?&]v=|[^/]+/.+/)|youtu\.be/)([^"&?/ ]{11})%i', $url, $m);
+
+        $tmrDirRoute = \Yii::getAlias('@app/tmp/dl-folder/') . $m[1];
+
+        return $tmrDirRoute;
     }
 
-   /* public function getFileName() {
-        return $this->dl->downloadPath;
-    } */
+    public function generateMp3File($tmrDirRoute) {
+
+        $downloadedFPath = FileHelper::findFiles($tmpDir,['only'=>['*.mp3']]);
+        $explodedDownloadedFPath = explode('/', $downloadedFPath[0]);
+
+        $fileName = $explodedDownloadedFPath[count($explodedDownloadedFPath)-1];
+
+        $downloadLink = Url::toRoute(['youtube-downloader/download']);
+
+        return [$fileName, $downloadLink];
+
+
+    }
+
+    /* --------------------------------------------------------- */
 
 }
     

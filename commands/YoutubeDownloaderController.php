@@ -10,6 +10,8 @@ use yii\console\ExitCode;
 use yii\helpers\FileHelper;
 use yii\helpers\Url;
 
+use Ratchet\WebSocket\WsServer;
+
 /**
  * This command echoes the first argument that you have entered.
  *
@@ -25,66 +27,72 @@ class YoutubeDownloaderController extends Controller
      * @param string $message the message to be echoed.
      * @return int Exit code
      */
-    protected function makeTmpDir($url) {
-        
-        preg_match('%(?:youtube(?:-nocookie)?\.com/(?:(?:v|e(?:mbed)?)/|.*[?&]v=|[^/]+/.+/)|youtu\.be/)([^"&?/ ]{11})%i', $url, $m);
+    public function actionLaunchGearmanWorker() {
 
-        return [$m[1], \Yii::getAlias('@app/tmp/dl-folder/') . $m[1]];
+        exec('osascript /usr/local/var/www/youtube_dl/launchworker.scpt');
+
     }
 
-    
-    protected function downloadFile($url, $tmpDir) {
+    public function actionPrepareRoutine() {
 
-        $model = new YoutubeDownloader;
+        $grmnWorker = new \GearmanWorker();
+        $grmnWorker->addServer();
 
-        if (FileHelper::createDirectory($tmpDir)) {
-            $model->init();
-            $model->setDestination($tmpDir);
-            $model->download($url);
+        $grmnWorker->addFunction('make_routine', [$this, 'routine']);
+        echo "Worker active";
+
+
+        while ($grmnWorker->work());
+        
+
+    }
+
+    public function routine($job) {
+
+        /* Parse input */
+        $userData = json_decode($job->workload(), true);
+
+        $url = $userData['url'];
+        $email = $userData['email'];
+
+        /* Prepare temporary directory name */
+        preg_match('%(?:youtube(?:-nocookie)?\.com/(?:(?:v|e(?:mbed)?)/|.*[?&]v=|[^/]+/.+/)|youtu\.be/)([^"&?/ ]{11})%i', $url, $m);
+        $tmpDir = \Yii::getAlias('@app/tmp/dl-folder/') . $m[1];
+        $ytVideoId = $m[1];
+
+        /* Extract mp3 file from youtube video */
+        $youtubeDownloader = new YoutubeDownloader;
+
+        if(FileHelper::createDirectory($tmpDir)) {
+            $youtubeDownloader->init();
+            $youtubeDownloader->setDestination($tmpDir);
+            $youtubeDownloader->extractMp3($url);
         } else {
-            throw new UserException('oops');
-
+            throw new Exception('Tmp directory could not be created');
         }
-
+        
+        /* Put file into file system */
         $downloadedFPath = FileHelper::findFiles($tmpDir,['only'=>['*.mp3']]);
         $explodedDownloadedFPath = explode('/', $downloadedFPath[0]);
-
+        
         $fileName = $explodedDownloadedFPath[count($explodedDownloadedFPath)-1];
+        
+        /* Generate download link */
+        $downloadLink = Url::toRoute(['youtube-downloader/download', 'fileName' => $fileName, 'ytVideoId' => $ytVideoId, 'email' => $email]);
 
-        $downloadLink = '?r=youtube-downloader%2Fdownload';
-
-        return [$fileName, $downloadLink];
-
-    }
-
-
-    protected function sendEmail($addressee, $downloadLink, $fileName, $ytVideoId) //$downloadLink = Url::toRoute([])
-    {
-        \Yii::$app->mailer->compose('download-link', ['downloadLink' => $downloadLink, 'fileName' => $fileName, 'ytVideoId' => $ytVideoId])
+        /* Generate email */
+        \Yii::$app->mailer->compose('download-link', ['downloadLink' => $downloadLink])
                             ->setFrom('youtubedl@company.com')
-                            ->setTo($addressee)
+                            ->setTo($email)
                             ->setSubject('Youtubedl-mp3')
                             ->send();
 
-        return;
-    }
+        /* Report on worker status */
+        echo "\nDone";
+        echo "\nShutting down this worker...\n";
 
-    public function actionLaunch($addressee, $url) {
-
-        echo "Creating tmp directory...";
-        $ytVideoId = $this->makeTmpDir($url)[0];
-        $tmpDir = $this->makeTmpDir($url)[1];
-
-        echo "Extracting mp3 from provided youtube link...";
-        $fileName = $this->downloadFile($url, $tmpDir)[0];
-        $downloadLink = $this->downloadFile($url, $tmpDir)[1];
-
-        echo "Sending email...";
-        $this->sendEmail($addressee, $downloadLink, $fileName, $ytVideoId);
-
-        return ExitCode::OK;
+        exec("kill -9 ". getmypid());
 
     }
-
 
 }

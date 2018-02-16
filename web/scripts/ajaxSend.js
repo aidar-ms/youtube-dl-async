@@ -11,6 +11,7 @@ $('#input-field').on('beforeSubmit', function() {
         data: $form.serializeArray(),
     }).done(function(data) {
         if(data.success) {
+            alert("Ваш файл получен. Ожидайте email с ссылкой");
             console.log(data);
         } else if (data.validation) {
             // server validation failed
