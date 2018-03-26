@@ -1,57 +1,28 @@
 <?php
-
 namespace app\commands;
 
 use app\models\YoutubeDownloader;
-use app\models\InputField;
-
 use yii\console\Controller;
 use yii\console\ExitCode;
 use yii\helpers\FileHelper;
 use yii\helpers\Url;
 
-use Ratchet\WebSocket\WsServer;
-
-/**
- * This command echoes the first argument that you have entered.
- *
- * This command is provided as an example for you to learn how to create console commands.
- *
- * @author Qiang Xue <qiang.xue@gmail.com>
- * @since 2.0
- */
 class YoutubeDownloaderController extends Controller
 {
-    /**
-     * This command echoes what you have entered as the message.
-     * @param string $message the message to be echoed.
-     * @return int Exit code
-     */
-    public function actionLaunchGearmanWorker() {
-
-        exec('osascript /usr/local/var/www/youtube_dl/launchworker.scpt');
-
-    }
 
     public function actionPrepareRoutine() {
-
         $grmnWorker = new \GearmanWorker();
-        $grmnWorker->addServer();
-
+        $grmnWorker->addServer('gearman', 4730);
         $grmnWorker->addFunction('make_routine', [$this, 'routine']);
-        echo "Worker active";
-
-
         while ($grmnWorker->work());
         
-
     }
 
     public function routine($job) {
 
-        /* Parse input */
+	    /* Parse input */
+	    echo "Got job";
         $userData = json_decode($job->workload(), true);
-
         $url = $userData['url'];
         $email = $userData['email'];
 
@@ -60,9 +31,10 @@ class YoutubeDownloaderController extends Controller
         $tmpDir = \Yii::getAlias('@app/tmp/dl-folder/') . $m[1];
         $ytVideoId = $m[1];
 
+        echo "working on $ytVideoId";
+        
         /* Extract mp3 file from youtube video */
         $youtubeDownloader = new YoutubeDownloader;
-
         if(FileHelper::createDirectory($tmpDir)) {
             $youtubeDownloader->init();
             $youtubeDownloader->setDestination($tmpDir);
@@ -71,7 +43,7 @@ class YoutubeDownloaderController extends Controller
             throw new Exception('Tmp directory could not be created');
         }
         
-        /* Put file into file system */
+        /* Get file name */
         $downloadedFPath = FileHelper::findFiles($tmpDir,['only'=>['*.mp3']]);
         $explodedDownloadedFPath = explode('/', $downloadedFPath[0]);
         
@@ -89,10 +61,7 @@ class YoutubeDownloaderController extends Controller
 
         /* Report on worker status */
         echo "\nDone";
-        echo "\nShutting down this worker...\n";
 
-        exec("kill -9 ". getmypid());
 
     }
-
 }

@@ -131,7 +131,7 @@ class SiteController extends Controller
     }
 
     public function actionRecords() {
-        $records = Records::find()->indexBy('timestamp')->all();
+        $records = Records::find()->indexBy('dt')->all();
 
         $records = new ActiveDataProvider([
             'query' => Records::find(),

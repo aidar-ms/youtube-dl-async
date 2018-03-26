@@ -19,19 +19,6 @@ use toriphes\console\Runner;
 
 class YoutubeDownloaderController extends Controller {
 
-    /* ----------- UTILITIES ------------*/
-    
-
-    protected function sendEmail($addressee, $downloadLink) {
-
-        \Yii::$app->mailer->compose('download',['link' => $downloadLink])
-                            ->setFrom('')
-                            ->setTo($addressee)
-                            ->setSubject('Ваш mp3 файл готов')
-                            ->send();
-
-    }
-
     /*------------ ACTIONS ----------*/
 
     public function actionValidate() {
@@ -42,7 +29,6 @@ class YoutubeDownloaderController extends Controller {
 
             // Request is Ajax
 
-
             $records = new Records;
             $input = new InputField;
 
@@ -51,12 +37,9 @@ class YoutubeDownloaderController extends Controller {
                 $url = $input->url;
                 $email = $input->email;
                 
-                $runner = new Runner();
-                $runner->run('youtube-downloader/launch-gearman-worker');
                 $grmnClient = new YtdlGearmanClient($url, $email);
-                
 
-                return $this->asJson(['success' => true]);
+                return $this->asJson(['success' => true, 'output' => $output]);
                     
             } else {
 

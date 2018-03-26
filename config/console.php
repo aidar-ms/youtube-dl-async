@@ -26,8 +26,8 @@ $config = [
             'transport' => [
                 'class' => 'Swift_SmtpTransport',
                 'host' => 'smtp.gmail.com',
-                'username' => '',
-                'password' => '',
+                'username' => 'mamytovaydar@gmail.com',
+                'password' => 'cfcbornplus90',
                 'port' => '587',
                 'encryption' => 'tls',
             ]
@@ -43,9 +43,9 @@ $config = [
         'db' => $db,
         'urlManager' => [
             'class' => 'yii\web\UrlManager',
-            'scriptUrl' => 'http://localhost:8080',
-            'hostInfo' => 'http://localhost:8080',
-            'baseUrl' => 'http://localhost:8080',
+            'scriptUrl' => 'http://localhost:8000',
+            'hostInfo' => 'http://localhost:8000',
+            'baseUrl' => 'http://localhost:8000',
             //'enablePrettyUrl' => true,
             'showScriptName' => false
         ],

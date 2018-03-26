@@ -23,8 +23,8 @@ class YoutubeDownloader extends Model {
             'audio-format' => 'mp3',
             'audio-quality' => 0, // best
             'output' => '%(title)s.%(ext)s',
-            'prefer-avconv' => true,
-            'ffmpeg-location' => '/usr/local/bin/avconv'
+            'prefer-ffmpeg' => true,
+            'ffmpeg-location' => '/usr/bin/ffmpeg'
         ]);
 
     }
