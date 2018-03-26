@@ -34,3 +34,4 @@ test.php
 launchworker.scpt
 launchworkerapache.scpt
 Vagrantfile
+/web/phpmyadmin
